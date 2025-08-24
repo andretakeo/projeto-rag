@@ -1,27 +1,13 @@
-from langchain_ollama.llms import OllamaLLM
-from langchain_core.prompts import ChatPromptTemplate
-from vector import retriever
-
-model = OllamaLLM(model="llama3.2:1b")
-
-template = """
-You are an exeprt in answering questions about a pizza restaurant
-
-Here are some relevant reviews: {reviews}
-
-Here is the question to answer: {question}
 """
-prompt = ChatPromptTemplate.from_template(template)
-chain = prompt | model
+Ponto de entrada principal para a API do Restaurant QA
+"""
+import uvicorn
+from api import app
 
-while True:
-    print("\n\n-------------------------------")
-    question = input("Ask your question (q to quit): ")
-    print("\n\n")
-    if question == "q":
-        break
+if __name__ == "__main__":
+    print("Iniciando Restaurant QA API...")
+    print("API estará disponível em: http://localhost:8000")
+    print("Documentação Swagger em: http://localhost:8000/docs")
+    print("Documentação ReDoc em: http://localhost:8000/redoc")
     
-    reviews = retriever.invoke(question)
-    print(reviews)
-    result = chain.invoke({"reviews": reviews, "question": question})
-    print(result)
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
