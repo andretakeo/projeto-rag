@@ -30,7 +30,7 @@ class RAGAgent:
     def __init__(self, config: AgentConfig):
         self.config = config
         self.embeddings = OllamaEmbeddings(model="mxbai-embed-large")
-        self.model = OllamaLLM(model=config.model)
+        self.model = OllamaLLM(model=str(config.model))
         self.db_location = f"./agents_db/{config.agent_id}"
         
         # Create vector store for this agent
@@ -149,11 +149,19 @@ class AgentManager:
     def create_default_restaurant_agent(self):
         """Create the default restaurant agent"""
         config = AgentConfig(
-            agent_id="restaurant",
-            name="Restaurant Expert",
-            description="Expert in answering questions about pizza restaurant reviews",
-            system_prompt="You are an expert in answering questions about a pizza restaurant"
-        )
+    agent_id="finance_chatbot",
+    name="Financial Services Expert",
+    description="Especialista em responder perguntas sobre atendimento digital e automação no setor financeiro",
+    system_prompt=(
+        "Você é um especialista em otimização de atendimento ao cliente no setor financeiro. "
+        "Responde perguntas sobre bancos digitais, fintechs e automação de suporte. "
+        "Explique como chatbots, processamento de linguagem natural e modelos de machine learning "
+        "podem reduzir custos, melhorar a experiência do cliente e gerar insights preditivos. "
+        "Dê exemplos práticos de casos de uso, como dúvidas sobre faturas, emissão de boletos, "
+        "consulta de extratos, renegociação de dívidas e análise de padrões financeiros."
+    )
+)
+
         
         agent = RAGAgent(config)
         

@@ -1,0 +1,6 @@
+titulo,conteudo,categoria,prioridade
+"Como resetar senha","Para resetar a senha acesse Configurações > Segurança > Alterar Senha. Digite a senha atual e a nova senha duas vezes.","autenticacao","alta"
+"Consultar saldo","O saldo pode ser consultado no app principal, seção 'Minha Conta' ou via SMS enviando SALDO para 4004.","consultas","media"
+"Erro de login","Se aparecer erro de login, verifique: 1) Usuário e senha corretos 2) Conexão com internet 3) App atualizado","problemas","alta"
+"Transferência PIX","Para fazer PIX: Menu > Transferir > PIX > Digite chave ou dados do destinatário > Confirme com biometria","transacoes","media"
+"Cartão bloqueado","Cartão bloqueado pode ser desbloqueado pelo app em Cartões > Gerenciar > Desbloquear ou ligando para 0800-123-4567","cartoes","alta"

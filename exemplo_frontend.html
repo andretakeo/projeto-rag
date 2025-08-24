@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>RAG API - Upload de Documentos</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        .form-group { margin: 15px 0; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .result { margin-top: 20px; padding: 10px; border-radius: 4px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>🤖 RAG API - Upload de Documentos</h1>
+    
+    <!-- Upload CSV -->
+    <div class="form-section">
+        <h2>📄 Upload de CSV</h2>
+        <form id="csvForm">
+            <div class="form-group">
+                <label>Agent ID:</label>
+                <input type="text" id="csvAgentId" value="finance_chatbot" required>
+            </div>
+            <div class="form-group">
+                <label>Arquivo CSV:</label>
+                <input type="file" id="csvFile" accept=".csv" required>
+            </div>
+            <div class="form-group">
+                <label>Coluna do Título:</label>
+                <input type="text" id="titleCol" value="titulo" required>
+            </div>
+            <div class="form-group">
+                <label>Coluna do Conteúdo:</label>
+                <input type="text" id="contentCol" value="conteudo" required>
+            </div>
+            <div class="form-group">
+                <label>Colunas de Metadata (separadas por vírgula):</label>
+                <input type="text" id="metadataCols" value="categoria,prioridade">
+            </div>
+            <button type="submit">📤 Upload CSV</button>
+        </form>
+    </div>
+
+    <!-- Adicionar Documentos -->
+    <div class="form-section">
+        <h2>📝 Adicionar Documento</h2>
+        <form id="docForm">
+            <div class="form-group">
+                <label>Agent ID:</label>
+                <input type="text" id="docAgentId" value="finance_chatbot" required>
+            </div>
+            <div class="form-group">
+                <label>Conteúdo do Documento:</label>
+                <textarea id="docContent" rows="4" placeholder="Digite o conteúdo do documento..." required></textarea>
+            </div>
+            <div class="form-group">
+                <label>Metadata (JSON):</label>
+                <textarea id="docMetadata" rows="3" placeholder='{"tipo": "manual", "categoria": "exemplo"}'></textarea>
+            </div>
+            <button type="submit">➕ Adicionar Documento</button>
+        </form>
+    </div>
+
+    <!-- Fazer Pergunta -->
+    <div class="form-section">
+        <h2>❓ Fazer Pergunta</h2>
+        <form id="queryForm">
+            <div class="form-group">
+                <label>Agent ID:</label>
+                <input type="text" id="queryAgentId" value="finance_chatbot" required>
+            </div>
+            <div class="form-group">
+                <label>Pergunta:</label>
+                <input type="text" id="question" placeholder="Como usar chatbots para reduzir custos?" required>
+            </div>
+            <button type="submit">🔍 Perguntar</button>
+        </form>
+    </div>
+
+    <div id="result"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+
+        // Upload CSV
+        document.getElementById('csvForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            formData.append('file', document.getElementById('csvFile').files[0]);
+            formData.append('agent_id', document.getElementById('csvAgentId').value);
+            formData.append('title_col', document.getElementById('titleCol').value);
+            formData.append('content_col', document.getElementById('contentCol').value);
+            
+            const metadataCols = document.getElementById('metadataCols').value;
+            if (metadataCols) {
+                formData.append('metadata_cols', metadataCols);
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/agents/documents/upload-csv`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                showResult(response.ok, `Upload CSV: ${JSON.stringify(result, null, 2)}`);
+            } catch (error) {
+                showResult(false, `Erro: ${error.message}`);
+            }
+        });
+
+        // Adicionar documento
+        document.getElementById('docForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            let metadata = {};
+            const metadataText = document.getElementById('docMetadata').value;
+            if (metadataText) {
+                try {
+                    metadata = JSON.parse(metadataText);
+                } catch (error) {
+                    showResult(false, 'Erro no JSON de metadata');
+                    return;
+                }
+            }
+
+            const payload = {
+                agent_id: document.getElementById('docAgentId').value,
+                documents: [{
+                    content: document.getElementById('docContent').value,
+                    metadata: metadata
+                }]
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/agents/documents/add`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                showResult(response.ok, `Documento adicionado: ${JSON.stringify(result, null, 2)}`);
+            } catch (error) {
+                showResult(false, `Erro: ${error.message}`);
+            }
+        });
+
+        // Fazer pergunta
+        document.getElementById('queryForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const payload = {
+                agent_id: document.getElementById('queryAgentId').value,
+                question: document.getElementById('question').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/agents/ask`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                if (response.ok) {
+                    showResult(true, `
+                        <strong>Pergunta:</strong> ${result.question}<br>
+                        <strong>Resposta:</strong> ${result.answer}<br>
+                        <strong>Documentos relevantes:</strong> ${result.relevant_documents.length}
+                    `);
+                } else {
+                    showResult(false, JSON.stringify(result, null, 2));
+                }
+            } catch (error) {
+                showResult(false, `Erro: ${error.message}`);
+            }
+        });
+
+        function showResult(success, message) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = `result ${success ? 'success' : 'error'}`;
+            resultDiv.innerHTML = message;
+        }
+    </script>
+</body>
+</html>

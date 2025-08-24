@@ -10,4 +10,4 @@ if __name__ == "__main__":
     print("Documentação Swagger em: http://localhost:8000/docs")
     print("Documentação ReDoc em: http://localhost:8000/redoc")
     
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)
