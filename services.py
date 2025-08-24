@@ -85,6 +85,26 @@ class MultiAgentQAService:
         except Exception as e:
             return {"error": f"Failed to add CSV: {str(e)}"}
     
+    def add_pdf_to_agent(self, agent_id: str, pdf_path: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Add PDF documents to an agent"""
+        agent = self.agent_manager.get_agent(agent_id)
+        if not agent:
+            return {"error": f"Agent {agent_id} not found"}
+        
+        if not os.path.exists(pdf_path):
+            return {"error": f"PDF file {pdf_path} not found"}
+        
+        try:
+            agent.add_pdf_documents(pdf_path, metadata)
+            return {
+                "agent_id": agent_id,
+                "pdf_path": pdf_path,
+                "status": "success",
+                "message": "PDF processed and added successfully"
+            }
+        except Exception as e:
+            return {"error": f"Failed to add PDF: {str(e)}"}
+    
     def get_relevant_documents(self, agent_id: str, question: str) -> Dict[str, Any]:
         """Get relevant documents from a specific agent"""
         agent = self.agent_manager.get_agent(agent_id)

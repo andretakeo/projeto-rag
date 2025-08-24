@@ -7,6 +7,8 @@ import os
 import pandas as pd
 from typing import List, Dict, Any, Optional
 import json
+import PyPDF2
+from langchain_community.document_loaders import PyPDFLoader
 
 class AgentConfig:
     """Configuration for a RAG agent"""
@@ -81,6 +83,34 @@ Here is the question to answer: {{question}}
             documents.append(document)
         
         self.add_documents(documents)
+    
+    def add_pdf_documents(self, pdf_path: str, metadata: Optional[Dict[str, Any]] = None) -> None:
+        """Add documents from PDF file"""
+        try:
+            loader = PyPDFLoader(pdf_path)
+            pages = loader.load()
+            
+            documents = []
+            for i, page in enumerate(pages):
+                # Combine default metadata with page-specific info
+                page_metadata = metadata.copy() if metadata else {}
+                page_metadata.update({
+                    "page_number": i + 1,
+                    "total_pages": len(pages),
+                    "source": os.path.basename(pdf_path),
+                    "file_type": "pdf"
+                })
+                
+                document = Document(
+                    page_content=page.page_content,
+                    metadata=page_metadata
+                )
+                documents.append(document)
+            
+            self.add_documents(documents)
+            
+        except Exception as e:
+            raise Exception(f"Error processing PDF {pdf_path}: {str(e)}")
     
     def get_relevant_documents(self, question: str) -> List[Dict[str, Any]]:
         """Retrieve relevant documents for a question"""

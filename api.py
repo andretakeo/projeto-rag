@@ -5,6 +5,7 @@ from typing import List, Dict, Any, Optional
 import uvicorn
 import tempfile
 import os
+import json
 
 app = FastAPI(
     title="Multi-Agent RAG API",
@@ -99,6 +100,7 @@ async def root():
             # Document management endpoints
             "/agents/documents/add": "POST - Adicionar documentos a um agente",
             "/agents/documents/upload-csv": "POST - Upload CSV para um agente",
+            "/agents/documents/upload-pdf": "POST - Upload PDF para um agente",
             
             # System endpoints
             "/health": "GET - Status da API"
@@ -330,6 +332,55 @@ async def upload_csv_to_agent(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao fazer upload do CSV: {str(e)}")
+
+@app.post("/agents/documents/upload-pdf", tags=["Document Management"])
+async def upload_pdf_to_agent(
+    agent_id: str,
+    metadata: Optional[str] = None,
+    file: UploadFile = File(...)
+):
+    """Upload e adicionar PDF a um agente"""
+    try:
+        # Validate file type
+        if not file.filename.lower().endswith('.pdf'):
+            raise HTTPException(status_code=400, detail="Arquivo deve ser um PDF")
+        
+        # Save uploaded file temporarily
+        with tempfile.NamedTemporaryFile(mode="wb", suffix=".pdf", delete=False) as temp_file:
+            content = await file.read()
+            temp_file.write(content)
+            temp_path = temp_file.name
+        
+        try:
+            # Parse metadata
+            metadata_dict = None
+            if metadata:
+                try:
+                    metadata_dict = json.loads(metadata)
+                except json.JSONDecodeError:
+                    raise HTTPException(status_code=400, detail="Metadata deve ser um JSON válido")
+            
+            result = qa_service.add_pdf_to_agent(
+                agent_id=agent_id,
+                pdf_path=temp_path,
+                metadata=metadata_dict
+            )
+            
+            if "error" in result:
+                if "not found" in result["error"].lower():
+                    raise HTTPException(status_code=404, detail=result["error"])
+                else:
+                    raise HTTPException(status_code=400, detail=result["error"])
+            
+            return result
+        finally:
+            # Clean up temp file
+            os.unlink(temp_path)
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao fazer upload do PDF: {str(e)}")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

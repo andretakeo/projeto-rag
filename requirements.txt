@@ -1,7 +1,12 @@
 langchain
 langchain-ollama
 langchain-chroma
+langchain-community
 pandas
 fastapi
 uvicorn[standard]
 pydantic
+PyPDF2
+python-multipart
+streamlit
+requests

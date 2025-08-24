@@ -60,11 +60,31 @@ The system is built around a multi-agent architecture where each agent can speci
 # Create virtual environment
 python -m venv venv
 
-# Activate virtual environment
+# Activate virtual environment (Windows)
 ./venv/Scripts/activate
+
+# Activate virtual environment (Linux/Mac)
+source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
+```
+
+## Common Development Commands
+
+```bash
+# Run the API server (development mode with auto-reload)
+python main.py
+
+# Run the legacy CLI interface
+python main_cli.py
+
+# Install Ollama models (required for embeddings and generation)
+ollama pull mxbai-embed-large
+ollama pull llama3.2:1b
+
+# Check if models are available
+ollama list
 ```
 
 ## Required Models
@@ -131,6 +151,7 @@ curl -X POST "http://localhost:8000/agents/ask" \
 ### Document Management
 - **POST /agents/documents/add** - Add documents to an agent
 - **POST /agents/documents/upload-csv** - Upload CSV file to an agent
+- **POST /agents/documents/upload-pdf** - Upload PDF file to an agent
 
 Example - Add documents:
 ```bash
@@ -147,6 +168,14 @@ curl -X POST "http://localhost:8000/agents/documents/add" \
   }'
 ```
 
+Example - Upload PDF:
+```bash
+curl -X POST "http://localhost:8000/agents/documents/upload-pdf" \
+  -F "file=@manual.pdf" \
+  -F "agent_id=tech_support" \
+  -F 'metadata={"document_type": "manual", "category": "documentation"}'
+```
+
 ### Legacy Endpoints (Backward Compatibility)
 - **POST /ask** - Ask the default restaurant agent
 - **POST /reviews** - Get reviews from the default restaurant agent
@@ -160,6 +189,28 @@ curl -X POST "http://localhost:8000/agents/documents/add" \
 - Legacy restaurant data persists in `./chrome_langchain_db/`
 - Vector databases are created automatically when agents are created
 - All data persists between server restarts
+
+## Key Technical Details
+
+### Vector Database Architecture
+- Each agent maintains its own ChromaDB collection in `./agents_db/{agent_id}/`
+- Embeddings generated using `mxbai-embed-large` model
+- Automatic persistence across server restarts
+- Independent document collections prevent cross-agent contamination
+
+### Agent Lifecycle
+1. **Creation**: Agent config saved to `agents_config.json`, vector DB initialized
+2. **Document Loading**: CSV or direct API uploads processed and vectorized
+3. **Query Processing**: Documents retrieved via similarity search, context passed to LLM
+4. **Deletion**: Both config and vector database files are cleaned up
+
+### System Prompt Engineering
+Agents support custom system prompts that define their expertise and behavior:
+```json
+{
+  "system_prompt": "You are a [DOMAIN] expert. Answer questions based on the provided documents using [SPECIFIC GUIDELINES]."
+}
+```
 
 ## Common Use Cases
 
@@ -188,5 +239,25 @@ curl -X POST "http://localhost:8000/agents/documents/add" \
 
 The system supports multiple data input methods:
 - **CSV Upload**: Upload structured data with title, content, and metadata columns
+- **PDF Upload**: Extract text from PDF files, automatically split by pages
 - **Direct Document Addition**: Add individual documents via API
 - **Legacy Support**: Original `realistic_restaurant_reviews.csv` for the default restaurant agent
+
+## PDF Processing Features
+
+- **Automatic Text Extraction**: Uses PyPDF2 to extract text from PDF files
+- **Page-wise Processing**: Each PDF page becomes a separate document for better retrieval
+- **Automatic Metadata**: Includes page numbers, total pages, source file name, and file type
+- **Custom Metadata Support**: Add your own metadata alongside automatic fields
+- **Error Handling**: Comprehensive error reporting for problematic PDFs
+
+### PDF Metadata Structure
+```json
+{
+  "page_number": 1,
+  "total_pages": 10,
+  "source": "manual.pdf",
+  "file_type": "pdf",
+  "custom_field": "your_value"
+}
+```
